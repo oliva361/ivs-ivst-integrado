@@ -406,7 +406,7 @@ footer p{margin:0 0 6px}
         <div class="feature"><div class="feature-num">13</div><h3>Dimensões</h3><p>Estrutura demográfica, capital humano, socioeconomia, habitação, serviços, isolamento, perigosidade, exposição e resposta.</p></div>
         <div class="feature"><div class="feature-num">2.296</div><h3>Freguesias</h3><p>Dados de base para 20 distritos e 296 concelhos de Portugal, com estimativas ajustáveis ao ano de referência.</p></div>
       </div>
-      <div class="empty-note"><strong>Como funciona.</strong> Escolha um território no painel acima. O IVS e o IVST são estimados por modelos híbridos, com valores editáveis no IVST e possibilidade de importar um score IVS real. O score integrado combina os dois índices com pesos ajustáveis.</div>
+      <div class="empty-note"><strong>Como funciona.</strong> Escolha um território no painel acima. O IVS e o IVST são estimados por modelos híbridos, com valores editáveis no IVST. O score integrado combina os dois índices com pesos ajustáveis.</div>
     </section>
 
     <section class="dashboard" id="dashboard" hidden>
@@ -605,8 +605,6 @@ let state={
   terr:{distrito:'',municipio:'',freguesia:'',nuts2:'',nuts3:'',area:'',pop:'',nome:'',notas:''},
   data:{},
   ivsData:{},
-  ivs_score:null,
-  ivs_band:null,
   autoFill:true,
   refYear:2021,
   weights:{ivs:0.5,ivst:0.5},
@@ -1489,15 +1487,13 @@ function runAutoFill(){
   renderAll();
 }
 
-function resetIVSImport(){
-  state.ivs_score=null;
-  state.ivs_band=null;
+function resetIVSData(){
   state.ivsData={};
 }
 
 function clearRegionData(){
   state.data={};
-  resetIVSImport();
+  resetIVSData();
   autoSave();
   renderAll();
 }
@@ -1677,7 +1673,6 @@ function ivsAutoRisk(ind,val){
 
 function ivsAutoFillRegion(){
   var t=state.terr;
-  if(state.ivs_score!==null&&Object.keys(state.ivsData).length>0)return true;
   if(!t.distrito)return false;
   if(state.level==='municipio'&&!t.municipio)return false;
   if(state.level==='freguesia'&&(!t.municipio||!t.freguesia))return false;
@@ -1721,11 +1716,9 @@ function calcIVSGlobalScore(){
 }
 
 function getIVSScore(){
-  if(state.ivs_score!==null&&state.ivs_score!==undefined&&state.ivs_score!=='')return Number(state.ivs_score);
   return calcIVSGlobalScore();
 }
 function getIVSBand(){
-  if(state.ivs_band!==null&&state.ivs_band!==undefined&&state.ivs_band!=='')return Number(state.ivs_band);
   return riskBand(getIVSScore());
 }
 function getIVSTScore(){return calcGlobalScore();}
@@ -1754,7 +1747,7 @@ function getLevelList(lvl,dist,munic){
 
 function setLevel(lvl){
   var t=state.terr;
-  resetIVSImport();
+  resetIVSData();
   state.level=lvl;
   state.terr={
     distrito:t.distrito||'',
@@ -1770,7 +1763,7 @@ function setLevel(lvl){
 }
 
 function setTerritory(lvl,val){
-  resetIVSImport();
+  resetIVSData();
   if(lvl==='distrito'){state.terr.distrito=val;state.terr.municipio='';state.terr.freguesia='';}
   else if(lvl==='municipio'){state.terr.municipio=val;state.terr.freguesia='';}
   else state.terr.freguesia=val;
@@ -1799,8 +1792,7 @@ function updateGeoPath(){
 const TAB_ICONS={
   territorio:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.5 7-12a7 7 0 1 0-14 0c0 5.5 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/></svg>',
   indicadores:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.5" cy="6" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="18" r="1"/></svg>',
-  score:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 14l4-4"/><path d="M3.5 18a9 9 0 1 1 17 0"/><circle cx="12" cy="18" r="1"/></svg>',
-  cruzamento:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/></svg>'
+  score:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 14l4-4"/><path d="M3.5 18a9 9 0 1 1 17 0"/><circle cx="12" cy="18" r="1"/></svg>'
 };
 
 const RCOL={1:'#16a34a',2:'#65a30d',3:'#d97706',4:'#ea580c',5:'#dc2626'};
@@ -1828,7 +1820,7 @@ function hasTerritory(){
 }
 
 function onLevelSelect(lvl,val){
-  resetIVSImport();
+  resetIVSData();
   if(lvl==='distrito'){
     state.terr.distrito=val;
     state.terr.municipio='';
@@ -1846,7 +1838,7 @@ function onLevelSelect(lvl,val){
 }
 
 function quickPick(d,c,f){
-  resetIVSImport();
+  resetIVSData();
   state.level=f?'freguesia':'municipio';
   state.terr.distrito=d;
   state.terr.municipio=c||'';
@@ -1930,7 +1922,7 @@ function renderSummary(){
     var ib=getIVSBand();
     var ic=ivs!==null?(RCOL[ib]||'#94a3b8'):'#94a3b8';
     ivsc.innerHTML='<div class="mini-ring" style="--pct:'+(ivs!==null?ivs/5*100:0)+';--ring:'+ic+'"><strong style="color:'+ic+'">'+(ivs!==null?ivs.toFixed(2):'—')+'</strong></div>'+
-      '<div><h3>IVS — Social</h3><p>Oliva &amp; Oliveira · 6 dimensões'+(state.ivs_score!==null?' · importado':'')+'</p><span class="mini-band" style="--ring:'+ic+'">'+(ivs!==null?RL[ib]:'Sem score')+'</span></div>';
+      '<div><h3>IVS — Social</h3><p>Oliva &amp; Oliveira · 6 dimensões</p><span class="mini-band" style="--ring:'+ic+'">'+(ivs!==null?RL[ib]:'Sem score')+'</span></div>';
   }
   if(ivstc){
     var sb=riskBand(ivst);
@@ -1985,7 +1977,7 @@ function filterDim(dim){
 function renderTabs(){
   var el=document.getElementById('tabs');
   if(!el)return;
-  var tabs=[['integrad','Visão integrada'],['ivs','IVS Social'],['indicadores','IVST Sísmico'],['score','Score IVST'],['cruzamento','Importar IVS']];
+  var tabs=[['integrad','Visão integrada'],['ivs','IVS Social'],['indicadores','IVST Sísmico'],['score','Score IVST']];
   var html='';
   for(var i=0;i<tabs.length;i++){
     html+='<button class="tab'+(state.uiTab===tabs[i][0]?' active':'')+'" onclick="switchTab(\''+tabs[i][0]+'\')">'+tabs[i][1]+'</button>';
@@ -2005,7 +1997,6 @@ function renderTabPanel(){
   if(state.uiTab==='integrad')renderIntegratedTab(el);
   else if(state.uiTab==='ivs')renderIVSTab(el);
   else if(state.uiTab==='score')renderScoreTab(el);
-  else if(state.uiTab==='cruzamento')renderCruzamentoTab(el);
   else renderIndicatorsTab(el);
   updateTopbar();
 }
@@ -2128,52 +2119,6 @@ function renderScoreTab(el){
   el.innerHTML=html;
 }
 
-function renderCruzamentoTab(el){
-  var ivs=getIVSScore();
-  var ivsBand=getIVSBand();
-  var ivst=getIVSTScore();
-  var ivstBand=riskBand(ivst);
-  var intg=calcIntegratedScore();
-  var intgBand=riskBand(intg);
-  var w=Math.round(state.weights.ivs*100);
-  var html='<div class="tab-head"><div><h3>Importar dados do IVS</h3><p>Carregue uma sessão do IVS Oliva &amp; Oliveira para substituir a estimativa automática, ou introduza o score manualmente.</p></div><div class="tab-meta">'+(state.ivs_score!==null?'IVS importado':'IVS estimado')+'</div></div>';
-  html+='<div class="cross-box"><div class="cross-hd"><span class="ico">Importar</span> Ficheiro de sessão IVS</div>'+
-    '<div class="ivs-import-area" ondragover="event.preventDefault();this.classList.add(\'dragover\')" ondragleave="this.classList.remove(\'dragover\')" ondrop="onDropIVS(event)">'+
-    '<p>Arraste o ficheiro JSON do IVS ou <button class="primary-inline" onclick="document.getElementById(\'ivs-file\').click()">selecionar ficheiro</button></p>'+
-    '<input type="file" id="ivs-file" accept=".json" style="display:none" onchange="loadIVSFile(this)"/></div></div>';
-  html+='<div class="cross-box"><div class="cross-hd"><span class="ico">Manual</span> Introduzir valores</div><div class="cross-row">'+
-    '<div class="cross-field"><label>Score IVS (1–5)</label><input type="number" step="0.01" min="1" max="5" id="ivs-input-score" value="'+(state.ivs_score!==null?Number(state.ivs_score).toFixed(2):'')+'" onchange="onIVSChange()"/></div>'+
-    '<div class="cross-field"><label>Banda IVS</label><select id="ivs-input-band" onchange="onIVSChange()"><option value="">—</option>';
-  for(var x=1;x<=5;x++){
-    html+='<option value="'+x+'"'+(state.ivs_band===x?' selected':'')+'>'+x+' — '+RL[x]+'</option>';
-  }
-  html+='</select></div>';
-  html+='<div class="cross-field"><label>Ação</label><button class="ghost small" onclick="clearIVSImport()">Remover importação</button></div>';
-  html+='</div></div>';
-  html+='<div class="cross-box"><div class="cross-hd"><span class="ico">Atual</span> Valores usados no cálculo</div><div class="cross-row">'+
-    '<div class="cross-field"><label>IVS Social</label><div class="cross-value" style="color:'+(ivs!==null?RCOL[ivsBand]:'var(--muted)')+'">'+fmtScore(ivs)+'</div><small style="color:var(--muted);font-size:10px">'+(state.ivs_score!==null?'Importado':'Estimado')+'</small></div>'+
-    '<div class="cross-field"><label>IVST Sísmico</label><div class="cross-value" style="color:'+(ivst!==null?RCOL[ivstBand]:'var(--muted)')+'">'+fmtScore(ivst)+'</div><small style="color:var(--muted);font-size:10px">Calculado</small></div>'+
-    '<div class="cross-field"><label>Score integrado</label><div class="cross-value" style="color:'+(intg!==null?RCOL[intgBand]:'var(--muted)')+'">'+fmtScore(intg)+'</div><small style="color:var(--muted);font-size:10px">IVS '+w+'% · IVST '+(100-w)+'%</small></div></div></div>';
-  if(intg!==null){
-    html+='<div class="cross-result"><div class="cross-hd"><span class="ico">Resultado</span> Risco integrado</div>'+
-      '<div class="cross-result-row"><div><div class="cross-rscore" style="color:'+RCOL[intgBand]+'">'+intg.toFixed(2)+'</div>'+
-      '<div class="cross-rbadge" style="background:color-mix(in srgb,'+RCOL[intgBand]+' 16%,transparent);color:'+RCOL[intgBand]+'">'+RL[intgBand]+' · Banda '+intgBand+'</div></div>'+
-      '<div class="cross-mini"><div><strong>'+fmtScore(ivst)+'</strong><small>IVST</small></div><div><strong>'+fmtScore(ivs)+'</strong><small>IVS</small></div><div><strong style="color:'+RCOL[intgBand]+'">'+intg.toFixed(2)+'</strong><small>Integrado</small></div></div></div></div>';
-  }else{
-    html+='<div class="cross-box"><p class="cross-empty">Selecione um território e preencha os indicadores para calcular o risco integrado.</p></div>';
-  }
-  el.innerHTML=html;
-}
-
-function clearIVSImport(){
-  state.ivs_score=null;
-  state.ivs_band=null;
-  state.ivsData={};
-  if(hasTerritory())ivsAutoFillRegion();
-  autoSave();
-  renderAll();
-}
-
 function renderIVSDimensionStrip(){
   var el=document.getElementById('ivs-dimension-strip');
   if(!el)return;
@@ -2274,7 +2219,7 @@ function renderIntegratedTab(el){
     }
   }
   html+='</div>';
-  html+='<div class="method-note"><strong>Metodologia:</strong> score integrado = IVS × peso + IVST × (1 − peso). O IVS pode ser importado de uma sessão real do IVS Oliva &amp; Oliveira; caso contrário é estimado a partir do perfil do território. O IVST é calculado com os 42 indicadores sísmicos. Ambos usam escala de risco de 1 a 5.</div>';
+  html+='<div class="method-note"><strong>Metodologia:</strong> score integrado = IVS × peso + IVST × (1 − peso). O IVS é estimado a partir do perfil do território. O IVST é calculado com os 42 indicadores sísmicos. Ambos usam escala de risco de 1 a 5.</div>';
   el.innerHTML=html;
 }
 
@@ -2356,11 +2301,7 @@ function renderIVSTab(el){
   var score=getIVSScore();
   var band=getIVSBand();
   var html='<div class="tab-head"><div><h3>IVS — Vulnerabilidade Social</h3><p>Modelo Oliva &amp; Oliveira com 6 dimensões e 45 indicadores. Estimativa automática a partir do perfil do território.</p></div><div class="tab-meta">'+(score!==null?fmtScore(score)+' / 5 · Banda '+band:'Sem score')+'</div></div>';
-  if(state.ivs_score!==null){
-    html+='<div class="note-box"><span><strong>Score importado:</strong> '+fmtScore(state.ivs_score)+' — substitui a estimativa automática no score integrado.</span><button onclick="switchTab(\'cruzamento\')">Gerir importação</button></div>';
-  }else{
-    html+='<div class="note-box"><span><strong>Estimativa automática:</strong> valores derivados do perfil do território e do ano de referência. Não substituem dados oficiais.</span><button onclick="switchTab(\'cruzamento\')">Importar IVS</button></div>';
-  }
+  html+='<div class="note-box"><span><strong>Estimativa automática:</strong> valores derivados do perfil do território e do ano de referência. Não substituem dados oficiais.</span></div>';
   if(state.ivsDimFilter){
     html+='<div style="margin-bottom:12px"><button class="ghost small" onclick="filterIVSDim(null)">Ver todas as dimensões</button></div>';
   }
@@ -2378,7 +2319,7 @@ function renderIVSTab(el){
         '<div class="ind-head"><span class="ind-id">'+dim+'</span><div class="ind-title"><h4>'+escHtml(ind.nome)+'</h4><p>'+escHtml(ind.unidade)+' · '+escHtml(ind.fonte)+'</p></div>'+
         (r!==null&&r!==undefined?'<span class="risk-badge">'+RL[r]+'</span>':'')+'</div>'+
         '<div class="ind-value"><strong>'+(v!==undefined&&v!==null&&v!==''?v:'—')+'</strong><span>'+escHtml(ind.unidade)+'</span></div>'+
-        '<div class="ind-meta"><span class="status auto">'+(state.ivs_score!==null?'Importado':'Automático')+'</span><button class="mini-btn" onclick="openIVSIndicatorDetail(\''+ind.id+'\')">Detalhes</button></div>'+
+        '<div class="ind-meta"><span class="status auto">Estimado</span><button class="mini-btn" onclick="openIVSIndicatorDetail(\''+ind.id+'\')">Detalhes</button></div>'+
       '</div>';
     }
   }
@@ -2443,146 +2384,6 @@ function onRiskChange(id){
   renderAll();
 }
 
-function onIVSChange(){
-  var s=document.getElementById('ivs-input-score');
-  var b=document.getElementById('ivs-input-band');
-  if(s)state.ivs_score=s.value!==''?Number(s.value):null;
-  if(b)state.ivs_band=b.value!==''?Number(b.value):null;
-  autoSave();
-  renderAll();
-}
-
-function onDropIVS(e){
-  e.preventDefault();
-  document.querySelector('.ivs-import-area').classList.remove('dragover');
-  if(e.dataTransfer.files[0])loadIVSFromFile(e.dataTransfer.files[0]);
-}
-
-function loadIVSFile(input){
-  if(input.files[0])loadIVSFromFile(input.files[0]);
-}
-
-function extractIVSRisks(dims, field){
-  var risks=[];
-  for(var di=0;di<dims.length;di++){
-    var dim=dims[di];
-    if(dim.inds && Array.isArray(dim.inds)){
-      for(var ii=0;ii<dim.inds.length;ii++){
-        var ind=dim.inds[ii];
-        var val=ind[field];
-        if(val!==undefined && val!==null && val!==''){
-          risks.push(Number(val));
-        }
-      }
-    }
-  }
-  return risks;
-}
-
-function loadIVSFromFile(file){
-  var reader=new FileReader();
-  reader.onload=function(e){
-    try{
-      var data=JSON.parse(e.target.result);
-      var k=LEVEL_KEYS[state.level];
-      var ivsScore=null;
-      var ivsBand=null;
-      var importedIndicators=false;
-
-      function riskFromVal(id,val){
-        var ind=findIVSIndicator(id);
-        if(!ind||val===null||val===undefined||val===''||isNaN(val))return null;
-        return ivsAutoRisk(ind,Number(val));
-      }
-
-      if(data.dims&&Array.isArray(data.dims)){
-        var dimScores=[];
-        for(var di=0;di<data.dims.length;di++){
-          var dim=data.dims[di];
-          var dimRisks=[];
-          var inds=dim.inds||[];
-          for(var ii=0;ii<inds.length;ii++){
-            var ind=inds[ii];
-            var id=ind.id;
-            if(!id)continue;
-            var val=(ind.val!==undefined?ind.val:null);
-            var risk=(ind.risco!==undefined&&ind.risco!==null&&ind.risco!=='')?Number(ind.risco):riskFromVal(id,val);
-            if(!state.ivsData[id])state.ivsData[id]={};
-            if(val!==null&&val!==undefined&&val!==''){
-              state.ivsData[id]['val_'+k]=Number(val);
-              importedIndicators=true;
-            }
-            if(risk!==null&&risk!==undefined&&!isNaN(risk)){
-              state.ivsData[id]['risk_'+k]=risk;
-              dimRisks.push(risk);
-              importedIndicators=true;
-            }
-          }
-          if(dimRisks.length){
-            var dsum=0;
-            for(var dr=0;dr<dimRisks.length;dr++)dsum+=dimRisks[dr];
-            dimScores.push(dsum/dimRisks.length);
-          }
-        }
-        if(dimScores.length){
-          var tsum=0;
-          for(var ds=0;ds<dimScores.length;ds++)tsum+=dimScores[ds];
-          ivsScore=tsum/dimScores.length;
-          ivsBand=riskBand(ivsScore);
-        }
-        if(data.terr){
-          if(data.terr.nome)state.terr.nome=data.terr.nome;
-          if(data.terr.notas)state.terr.notas=data.terr.notas;
-        }
-      }
-      else if(data.ivs_score!==undefined&&data.ivs_score!==null&&data.ivs_score!==''){
-        ivsScore=Number(data.ivs_score);
-        ivsBand=(data.ivs_band!==undefined&&data.ivs_band!==null&&data.ivs_band!=='')?Number(data.ivs_band):riskBand(ivsScore);
-      }
-      else if(data.state){
-        if(data.state.ivs_score!==undefined&&data.state.ivs_score!==null&&data.state.ivs_score!=='')ivsScore=Number(data.state.ivs_score);
-        if(data.state.ivs_band!==undefined&&data.state.ivs_band!==null&&data.state.ivs_band!=='')ivsBand=Number(data.state.ivs_band);
-        if(data.state.ivsData)Object.assign(state.ivsData,data.state.ivsData);
-      }
-      else{
-        var risks=[];
-        for(var key in data){
-          if(data.hasOwnProperty(key)&&typeof data[key]==='object'&&data[key]!==null){
-            var obj=data[key];
-            var rv=obj.risco!==undefined?obj.risco:(obj.riscoMun!==undefined?obj.riscoMun:(obj.riscoDist!==undefined?obj.riscoDist:null));
-            if(rv!==null&&rv!==undefined&&rv!==''){
-              risks.push(Number(rv));
-            }
-          }
-        }
-        if(risks.length){
-          var rsum=0;
-          for(var ri=0;ri<risks.length;ri++)rsum+=risks[ri];
-          ivsScore=rsum/risks.length;
-          ivsBand=riskBand(ivsScore);
-        }
-      }
-
-      if(ivsScore!==null&&isFinite(ivsScore)&&ivsScore>0){
-        state.ivs_score=ivsScore;
-        state.ivs_band=ivsBand;
-        var elScore=document.getElementById('ivs-input-score');
-        if(elScore)elScore.value=ivsScore.toFixed(2);
-        var elBand=document.getElementById('ivs-input-band');
-        if(elBand)elBand.value=String(ivsBand);
-        autoSave();
-        renderAll();
-        if(importedIndicators)console.info('IVS: indicadores importados para o nivel atual.');
-      }else{
-        alert('Nao foram encontrados dados do IVS no ficheiro. Verifique se e um ficheiro de sessao do IVS valido.');
-      }
-    }catch(err){
-      alert('Erro ao ler ficheiro: formato invalido.');
-    }
-  };
-  reader.readAsText(file);
-}
-
 function openReport(){
   var body=document.getElementById('modal-body');
   var ivs=getIVSScore();
@@ -2618,7 +2419,7 @@ function openReport(){
     '</div>'+
     '<table style="width:100%;border-collapse:collapse;font-size:11px">'+
       '<tr><th style="background:var(--s3);padding:7px 10px;text-align:left;font-size:9px;font-weight:700">Indice</th><th style="background:var(--s3);padding:7px 10px;text-align:left;font-size:9px;font-weight:700">Score</th><th style="background:var(--s3);padding:7px 10px;text-align:left;font-size:9px;font-weight:700">Banda</th><th style="background:var(--s3);padding:7px 10px;text-align:left;font-size:9px;font-weight:700">Classificacao</th><th style="background:var(--s3);padding:7px 10px;text-align:left;font-size:9px;font-weight:700">Origem</th></tr>'+
-      '<tr><td style="padding:6px 10px;border-bottom:1px solid var(--b1)">IVS (Social)</td><td style="padding:6px 10px;border-bottom:1px solid var(--b1)">'+fmtScore(ivs)+'</td><td style="padding:6px 10px;border-bottom:1px solid var(--b1)">'+(ivs!==null?ivsBand:'---')+'</td><td style="padding:6px 10px;border-bottom:1px solid var(--b1)">'+(ivs!==null?RL[ivsBand]:'---')+'</td><td style="padding:6px 10px;border-bottom:1px solid var(--b1)">'+(state.ivs_score!==null?'Importado':'Estimado')+'</td></tr>'+
+      '<tr><td style="padding:6px 10px;border-bottom:1px solid var(--b1)">IVS (Social)</td><td style="padding:6px 10px;border-bottom:1px solid var(--b1)">'+fmtScore(ivs)+'</td><td style="padding:6px 10px;border-bottom:1px solid var(--b1)">'+(ivs!==null?ivsBand:'---')+'</td><td style="padding:6px 10px;border-bottom:1px solid var(--b1)">'+(ivs!==null?RL[ivsBand]:'---')+'</td><td style="padding:6px 10px;border-bottom:1px solid var(--b1)">Estimado</td></tr>'+
       '<tr><td style="padding:6px 10px;border-bottom:1px solid var(--b1)">IVST (Sismico)</td><td style="padding:6px 10px;border-bottom:1px solid var(--b1)">'+fmtScore(ivst)+'</td><td style="padding:6px 10px;border-bottom:1px solid var(--b1)">'+(ivst!==null?ivstBand:'---')+'</td><td style="padding:6px 10px;border-bottom:1px solid var(--b1)">'+(ivst!==null?RL[ivstBand]:'---')+'</td><td style="padding:6px 10px;border-bottom:1px solid var(--b1)">Calculado</td></tr>'+
       '<tr><td style="padding:6px 10px;font-weight:700">Integrado</td><td style="padding:6px 10px;font-weight:700">'+fmtScore(intg)+'</td><td style="padding:6px 10px;font-weight:700">'+(intg!==null?intgBand:'---')+'</td><td style="padding:6px 10px;font-weight:700">'+(intg!==null?RL[intgBand]:'---')+'</td><td style="padding:6px 10px;font-weight:700">Ponderado</td></tr>'+
     '</table></div>';
@@ -2748,7 +2549,7 @@ function openReport(){
   }
   html+='</div>';
 
-  html+='<div style="margin-bottom:22px;padding:12px 15px;border-left:3px solid var(--acc);background:var(--s2);border-radius:0 8px 8px 0;font-size:10.5px;line-height:1.6;color:var(--t2)"><strong style="color:var(--t1)">Metodologia:</strong> score integrado = IVS x peso + IVST x (1 - peso). O IVS e importado de sessoes reais do IVS Oliva &amp; Oliveira quando disponivel; caso contrario e estimado a partir do perfil do territorio. O IVST resulta dos 42 indicadores sismicos. Ambos usam escala de risco de 1 a 5.</div>';
+  html+='<div style="margin-bottom:22px;padding:12px 15px;border-left:3px solid var(--acc);background:var(--s2);border-radius:0 8px 8px 0;font-size:10.5px;line-height:1.6;color:var(--t2)"><strong style="color:var(--t1)">Metodologia:</strong> score integrado = IVS x peso + IVST x (1 - peso). O IVS e estimado a partir do perfil do territorio. O IVST resulta dos 42 indicadores sismicos. Ambos usam escala de risco de 1 a 5.</div>';
 
   html+='<div style="margin-top:24px;padding-top:14px;border-top:1px solid var(--b1);font-size:10px;color:var(--t3);text-align:center">IVS Oliva &amp; Oliveira + IVST Oliva | Modelo Integrado | Cutter | Tierney | UNDRR | OCDE<br>Gerado em '+new Date().toLocaleDateString('pt-PT')+'</div>';
 
@@ -2802,7 +2603,7 @@ function exportExcel(){
   scoreRows.push(['Score IVS',ivs!==null?ivs.toFixed(4):'']);
   scoreRows.push(['Banda IVS',ivs!==null?ivsBand:'']);
   scoreRows.push(['Classificacao IVS',ivs!==null?RL[ivsBand]:'']);
-  scoreRows.push(['Origem IVS',state.ivs_score!==null?'Importado':'Estimado']);
+  scoreRows.push(['Origem IVS','Estimado']);
   scoreRows.push(['Score IVST',ivst!==null?ivst.toFixed(4):'']);
   scoreRows.push(['Banda IVST',ivst!==null?ivstBand:'']);
   scoreRows.push(['Classificacao IVST',ivst!==null?RL[ivstBand]:'']);
@@ -2865,7 +2666,7 @@ function exportExcel(){
         sr!==undefined&&sr!==null?sr:'',
         sr!==undefined&&sr!==null?RL[sr]:'',
         state.refYear,
-        state.ivs_score!==null?'Importado (score global)':'Estimado'
+        'Estimado'
       ]);
     }
   }
@@ -2896,7 +2697,7 @@ function toggleTheme(){
 }
 function autoSave(){
   try{
-    var s={level:state.level,terr:state.terr,data:state.data,ivsData:state.ivsData,ivs_score:state.ivs_score,ivs_band:state.ivs_band,autoFill:state.autoFill,refYear:state.refYear,weights:state.weights};
+    var s={level:state.level,terr:state.terr,data:state.data,ivsData:state.ivsData,autoFill:state.autoFill,refYear:state.refYear,weights:state.weights};
     localStorage.setItem('ivs_ivst_integrado_session',JSON.stringify(s));
   }catch(e){}
 }
@@ -2909,8 +2710,6 @@ function tryRestore(){
       if(s.level)state.level=s.level;
       if(s.terr)Object.assign(state.terr,s.terr);
       if(s.data)state.data=s.data;
-      if(s.ivs_score!==undefined)state.ivs_score=s.ivs_score;
-      if(s.ivs_band!==undefined)state.ivs_band=s.ivs_band;
       if(s.autoFill!==undefined)state.autoFill=!!s.autoFill;
       if(s.refYear!==undefined)state.refYear=Number(s.refYear)||state.refYear;
       if(s.ivsData)state.ivsData=s.ivsData;
@@ -2923,7 +2722,7 @@ function tryRestore(){
 function saveSession(){
   autoSave();
   try{
-    var s={level:state.level,terr:state.terr,data:state.data,ivsData:state.ivsData,ivs_score:state.ivs_score,ivs_band:state.ivs_band,refYear:state.refYear,weights:state.weights};
+    var s={level:state.level,terr:state.terr,data:state.data,ivsData:state.ivsData,refYear:state.refYear,weights:state.weights};
     var blob=new Blob([JSON.stringify(s,null,2)],{type:'application/json'});
     var a=document.createElement('a');
     a.href=URL.createObjectURL(blob);
@@ -2943,8 +2742,6 @@ function loadSession(input){
       if(s.level)state.level=s.level;
       if(s.terr)Object.assign(state.terr,s.terr);
       if(s.data)state.data=s.data;
-      if(s.ivs_score!==undefined)state.ivs_score=s.ivs_score;
-      if(s.ivs_band!==undefined)state.ivs_band=s.ivs_band;
       if(s.autoFill!==undefined)state.autoFill=!!s.autoFill;
       if(s.refYear!==undefined)state.refYear=Number(s.refYear)||state.refYear;
       if(s.ivsData)state.ivsData=s.ivsData;
@@ -2961,8 +2758,6 @@ function clearAll(){
   if(!confirm('Tem a certeza? Esta acao nao pode ser desfeita.'))return;
   state.data={};
   state.ivsData={};
-  state.ivs_score=null;
-  state.ivs_band=null;
   state.terr={distrito:'',municipio:'',freguesia:'',nuts2:'',nuts3:'',area:'',pop:'',nome:'',notas:''};
   autoSave();
   renderAll();
